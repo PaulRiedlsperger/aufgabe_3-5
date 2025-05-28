@@ -2,7 +2,7 @@ from read_pandas import read_my_csv
 import streamlit as st
 import plotly.graph_objects as go
 
-#df = read_my_csv()
+df = read_my_csv()
 
 # Beispielhafte Daten (falls du keine eigenen einliest)
 # df = pd.read_csv("deine_datei.csv")  # alternativ
@@ -119,3 +119,38 @@ def make_plot_with_zones(df, HRmax):
     return fig
 
   
+def get_average_power(df):
+    """
+    Gibt den Mittelwert der Spalte 'Power' zurück.
+    """
+    return df["PowerOriginal"].mean()
+
+def get_max_power(df):
+    """
+    Gibt den Maximalwert der Spalte 'Power' zurück.
+    """
+    return df["PowerOriginal"].max()
+
+HRmax = st.slider("Maximale Herzfrequenz (HRmax)", min_value=150, max_value=220, value=200)
+
+def get_hr_zone(hr, HRmax):
+    if hr < HRmax * 0.6:
+        return "Zone 1"
+    elif hr < HRmax * 0.7:
+        return "Zone 2"
+    elif hr < HRmax * 0.8:
+        return "Zone 3"
+    elif hr < HRmax * 0.9:
+        return "Zone 4"
+    else:
+        return "Zone 5"
+
+df["zone"] = df["HeartRate"].apply(lambda x: get_hr_zone(x, HRmax))
+
+zone_zeiten = df["zone"].value_counts().sort_index()
+st.subheader("🕒 Zeit in den Herzfrequenz-Zonen (in Sekunden)")
+st.dataframe(zone_zeiten.rename("Zeit (s)"))
+
+leistung_zone = df.groupby("zone")["PowerOriginal"].mean().round(1)
+st.subheader("⚡ Durchschnittliche Leistung pro Zone")
+st.dataframe(leistung_zone.rename("Ø Leistung (Watt)"))

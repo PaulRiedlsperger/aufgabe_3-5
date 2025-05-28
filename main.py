@@ -2,7 +2,7 @@ import streamlit as st
 import read_data 
 from PIL import Image
 from read_pandas import read_my_csv
-from HR_functions import make_plot_with_zones
+from HR_functions import make_plot_with_zones, get_average_power, get_max_power, get_hr_zone
 
 tab1 ,tab2 = st.tabs(["Versuchsperson", "Daten"])
 
@@ -44,3 +44,20 @@ with tab2:
     df = read_my_csv()
     st.plotly_chart(make_plot_with_zones(df, HRmax=200))
  
+    st.write("Durchschnittliche Leistung: ", get_average_power(df))
+    st.write("Maximale Leistung: ", get_max_power(df))
+
+    HRmax = st.slider("Maximale Herzfrequenz (HRmax)", 150, 220, 200)
+
+    # Zonen zuweisen
+    df["zone"] = df["HeartRate"].apply(lambda x: get_hr_zone(x, HRmax))
+
+    # Zonen-Zeit
+    zone_zeiten = df["zone"].value_counts().sort_index()
+    st.subheader("🕒 Zeit in den Herzfrequenz-Zonen (in Sekunden)")
+    st.dataframe(zone_zeiten.rename("Zeit (s)"))
+
+    # Durchschnittsleistung je Zone
+    leistung_zone = df.groupby("zone")["PowerOriginal"].mean().round(1)
+    st.subheader("⚡ Durchschnittliche Leistung pro Zone")
+    st.dataframe(leistung_zone.rename("Ø Leistung (Watt)"))
