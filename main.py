@@ -1,34 +1,46 @@
 import streamlit as st
 import read_data 
 from PIL import Image
+from read_pandas import read_my_csv
+from HR_functions import make_plot_with_zones
 
-# Session State wird leer angelegt, solange er noch nicht existiert
-if 'current_user' not in st.session_state:
-    st.session_state.current_user = 'None'
+tab1 ,tab2 = st.tabs(["Versuchsperson", "Daten"])
 
-# Legen Sie eine neue Liste mit den Personennamen an indem Sie ihre 
-# Funktionen aufrufen
-person_dict = read_data.load_person_data()
-person_names = read_data.get_person_list(person_dict)
-# bzw: wenn Sie nicht zwei separate Funktionen haben
-# person_names = read_data.get_person_list()
+with tab1:
+   
+    # Session State wird leer angelegt, solange er noch nicht existiert
+    if 'current_user' not in st.session_state:
+        st.session_state.current_user = 'None'
 
-# Eine Überschrift der ersten Ebene
-st.write("# EKG APP")
+    # Legen Sie eine neue Liste mit den Personennamen an indem Sie ihre 
+    # Funktionen aufrufen
+    person_dict = read_data.load_person_data()
+    person_names = read_data.get_person_list(person_dict)
+    # bzw: wenn Sie nicht zwei separate Funktionen haben
+    # person_names = read_data.get_person_list()
 
-# Eine Überschrift der zweiten Ebene
-st.write("## Versuchsperson auswählen")
+    # Eine Überschrift der ersten Ebene
+    st.write("# EKG APP")
 
-# Eine Auswahlbox, das Ergebnis wird in current_user gespeichert
-st.session_state.current_user = st.selectbox(
-    'Versuchsperson',
-    options = person_names, key="sbVersperson_namesuchsperson")
+    # Eine Überschrift der zweiten Ebene
+    st.write("## Versuchsperson auswählen")
 
-# Anlegen des Session State. Bild, wenn es kein Bild gibt
-if 'picture_path' not in st.session_state:
-    st.session_state.picture_path = 'data/pictures/none.jpg'
+    # Eine Auswahlbox, das Ergebnis wird in current_user gespeichert
+    st.session_state.current_user = st.selectbox(
+        'Versuchsperson',
+        options = person_names, key="sbVersperson_namesuchsperson")
 
-st.session_state.picture_path = read_data.find_person_data_by_name(st.session_state.current_user)["picture_path"]
+    # Anlegen des Session State. Bild, wenn es kein Bild gibt
+    if 'picture_path' not in st.session_state:
+        st.session_state.picture_path = 'data/pictures/none.jpg'
 
-image = Image.open(st.session_state.picture_path)
-st.image(image, caption=st.session_state.current_user)
+    st.session_state.picture_path = read_data.find_person_data_by_name(st.session_state.current_user)["picture_path"]
+
+    image = Image.open(st.session_state.picture_path)
+    st.image(image, caption=st.session_state.current_user)
+
+
+with tab2: 
+    df = read_my_csv()
+    st.plotly_chart(make_plot_with_zones(df, HRmax=200))
+ 
