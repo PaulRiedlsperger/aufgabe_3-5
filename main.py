@@ -7,7 +7,6 @@ from HR_functions import make_plot_with_zones, get_average_power, get_max_power,
 tab1 ,tab2 = st.tabs(["Versuchsperson", "Daten"])
 
 with tab1:
-   
     # Session State wird leer angelegt, solange er noch nicht existiert
     if 'current_user' not in st.session_state:
         st.session_state.current_user = 'None'
@@ -41,14 +40,22 @@ with tab1:
 
 
 with tab2: 
+    #HRmax = st.slider("Maximale Herzfrequenz (HRmax)", 150, 220, 200)
+
+    HRmax = st.slider(
+    "Maximale Herzfrequenz (HRmax)",
+    150, 220, st.session_state.get("HRmax", 200),
+    key="slider_hrmax_tab2"
+    )
+    st.session_state.HRmax = HRmax
+
     df = read_my_csv()
-    st.plotly_chart(make_plot_with_zones(df, HRmax=200))
+    st.plotly_chart(make_plot_with_zones(df, HRmax))
  
     st.write("Durchschnittliche Leistung: ", get_average_power(df))
     st.write("Maximale Leistung: ", get_max_power(df))
 
-    HRmax = st.slider("Maximale Herzfrequenz (HRmax)", 150, 220, 200)
-
+    
     # Zonen zuweisen
     df["zone"] = df["HeartRate"].apply(lambda x: get_hr_zone(x, HRmax))
 

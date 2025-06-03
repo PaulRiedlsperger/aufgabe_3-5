@@ -12,6 +12,7 @@ df = read_my_csv()
 
 def make_plot_with_zones(df, HRmax):
 
+    
     # Zone pro Zeile berechnen
     def get_zone(hr):
         if hr < HRmax * 0.6:
@@ -26,6 +27,7 @@ def make_plot_with_zones(df, HRmax):
             return "Zone 5"
 
     df["zone"] = df["HeartRate"].apply(get_zone)
+    
 
     # Farben pro Zone
     zone_colors = {
