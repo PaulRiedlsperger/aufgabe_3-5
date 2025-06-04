@@ -10,4 +10,4 @@ APP mit dem Befehl "streamlit run main.py in dem Terminal starten"
 
 ## Power Curve
 
-![Power Curve](power_curve.png)
+![Power Curve](powepowercurve.png)

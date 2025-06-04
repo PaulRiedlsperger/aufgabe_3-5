@@ -3,20 +3,13 @@ from read_pandas import read_my_csv
 import plotly.graph_objects as go
 import numpy as np
 
-def read_my_csv():
-    # Einlesen eines Dataframes
-    ## "\t" steht für das Trennzeichen in der txt-Datei (Tabulator anstelle von Beistrich)
-    ## header = None: es gibt keine Überschriften in der txt-Datei
-    df = pd.read_csv("data/activities/activity.csv")
-
+def read_my_csv(path):
+    df = pd.read_csv(path)
+    
     t_end= len(df)
     time = np.arange(0, t_end)
     df["time"] = time
-
-    # Setzt die Columnnames im Dataframe
-    #df.columns = ["Messwerte in mV","Zeit in ms"]
     
-    # Gibt den geladen Dataframe zurück
     return df
 
 
@@ -32,12 +25,9 @@ def find_best_effort(series, window_seconds):
     Returns:
         Tuple[float, pd.Timestamp]: (Maximale Durchschnittsleistung, Startzeitpunkt des besten Abschnitts)
     """
-    # Sicherstellen, dass der Index ein Zeitindex ist
-    if not isinstance(series.index, pd.DatetimeIndex):
-        raise ValueError("Index der Series muss ein DatetimeIndex sein.")
 
     # Gleitendes Fenster über den angegebenen Zeitraum (z. B. '300s' für 5 Minuten)
-    rolling_avg = series.rolling(f"{window_seconds}s").mean()
+    rolling_avg = series.rolling(window_seconds).mean()             #window_seconds ändern!  
 
     # Maximalwert finden
     max_avg_power = rolling_avg.max()
@@ -46,83 +36,82 @@ def find_best_effort(series, window_seconds):
     return max_avg_power, best_time
 
 
-def generate_power_curve(series: pd.Series = None, window_list: list[int] = None) -> pd.Series:
+def generate_power_curve(series, window_list=[60, 120, 300, 600, 900, 1200, 1800]) -> pd.DataFrame:
     """
     Erzeugt eine Power Curve aus einer Zeitreihe und mehreren Fenstergrößen.
 
     Args:
-        series (pd.Series): Leistungsdaten mit Zeitstempel als Index.
+        series (pd.Series): Zeitreihe mit Leistungswerten (z. B. Watt), Zeitstempel als Index.
         window_list (list[int]): Liste von Fenstergrößen in Sekunden.
 
     Returns:
-        pd.Series: Power Curve.
+        pd.DataFrame: Power Curve mit Spalten 'window_seconds' und 'avg_power'.
     """
-    if series is None:
-        df = read_my_csv()
-        series = df["PowerOriginal"]
-        # Falls noch kein Zeitindex gesetzt ist:
-        if not isinstance(series.index, pd.DatetimeIndex):
-            series.index = pd.date_range(start='2023-01-01', periods=len(series), freq='s')
+    results = []
 
-    if window_list is None:
-        window_list = [5, 10, 30, 60, 120, 300, 600, 1200, 1800]
-
-    curve = {}
     for window in window_list:
         try:
             max_avg, _ = find_best_effort(series, window)
-            curve[window] = max_avg
+            results.append({"window_seconds": window, "avg_power": max_avg})
         except Exception as e:
             print(f"Fehler bei Fenster {window} Sekunden: {e}")
-            curve[window] = None
+            results.append({"window_seconds": window, "avg_power": None})
 
-    return pd.Series(curve).sort_index()
 
-  
+    return pd.DataFrame(results).sort_values("window_seconds").reset_index(drop=True)
 
-def plot_power_curve(power_curve: pd.Series, time_unit: str = "min") -> go.Figure:
+def plot_power_curve(df2, time_unit="min"):
     """
-    Erzeugt eine Plotly-Figur zur Darstellung der Power Curve.
-    
-    Args:
-        power_curve (pd.Series): Index = Zeitfenster in Sekunden, Werte = Durchschnittsleistung (Watt).
-        time_unit (str): "s" für Sekunden oder "min" für Minuten auf der x-Achse.
-    
-    Returns:
-        go.Figure: Interaktive Plotly-Grafik.
+    Plottet eine Power Curve aus einem DataFrame mit 'window_seconds' und 'avg_power'.
     """
+
     # Zeitachse skalieren
     if time_unit == "min":
-        x_values = power_curve.index / 60
+        x_values = df2["window_seconds"] / 60
         x_title = "Zeitfenster (min)"
     else:
-        x_values = power_curve.index
+        x_values = df2["window_seconds"]
         x_title = "Zeitfenster (s)"
-    
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=x_values,
-        y=power_curve.values,
+        y=df2["avg_power"],
         mode='lines+markers',
         name='Power Curve',
         line=dict(width=3),
         marker=dict(size=6)
     ))
-    
+
     fig.update_layout(
         title="Power Curve",
         xaxis_title=x_title,
         yaxis_title="Durchschnittsleistung (Watt)",
         template="plotly_white"
     )
-    
+
     return fig
 
+
+
 if __name__ == "__main__":
-    power_curve = generate_power_curve()  # <- Keine Argumente nötig
-    fig = plot_power_curve(power_curve)
+    df = read_my_csv("data/activities/activity.csv")
+    print(df.head())
+
+    watts300, time300 = find_best_effort(df["PowerOriginal"], 300)
+    print(f"Beste Leistung in 300 Sekunden: {watts300} Watt, Startzeit: {time300}")
+    df2 = generate_power_curve(series=df["PowerOriginal"], window_list=[60, 120, 300, 600, 900, 1200, 1800])
+    print(df2)
+    #plot_power_curve(df2)
+    fig = plot_power_curve(df2)
+    #fig.write_image("power_curve.png")
     fig.show()
-    fig.write_image("power_curve.png")
+    
+
+    
+
+    
+
 
 
 
