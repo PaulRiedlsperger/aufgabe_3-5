@@ -7,3 +7,7 @@ APP mit dem Befehl "streamlit run main.py in dem Terminal starten"
 ![alt text](DiagrammHR.png)
 
 ![alt text](TabellenHR.png)
+
+## Power Curve
+
+![Power Curve](power_curve.png)
