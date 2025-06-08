@@ -1,10 +1,13 @@
 import streamlit as st
 import read_data 
+import json
 from PIL import Image
 from read_pandas import read_my_csv
 from HR_functions import make_plot_with_zones, get_average_power, get_max_power, get_hr_zone
+from ekgdata import EKGdata
+from person import Person
 
-tab1 ,tab2 = st.tabs(["Versuchsperson", "Daten"])
+tab1 ,tab2 ,tab3 = st.tabs(["Versuchsperson", "Daten", "EKG-Analyse"])
 
 with tab1:
     # Session State wird leer angelegt, solange er noch nicht existiert
@@ -40,6 +43,7 @@ with tab1:
 
 
 with tab2: 
+
     #HRmax = st.slider("Maximale Herzfrequenz (HRmax)", 150, 220, 200)
 
     HRmax = st.slider(
@@ -68,3 +72,39 @@ with tab2:
     leistung_zone = df.groupby("zone")["PowerOriginal"].mean().round(1)
     st.subheader("⚡ Durchschnittliche Leistung pro Zone")
     st.dataframe(leistung_zone.rename("Ø Leistung (Watt)"))
+
+with tab3:
+    file = open("data/person_db.json")
+    person_data = json.load(file)
+    suchid = st.number_input("Gib eine ID ein", min_value=0, step=1)
+
+
+    if suchid:
+        selected_dict = Person.find_person_data_by_id(suchid)
+
+        if selected_dict:
+            st.write("🔍 Ausgewählte Person:", selected_dict)
+
+            # EKG-Daten laden
+            ekg_dict = selected_dict["ekg_tests"][0]
+            ekg = EKGdata(ekg_dict)
+
+            st.write("📊 EKG-Daten (Vorschau):")
+            st.dataframe(ekg.df.head())
+
+            # Analyse
+            threshold = st.slider("🩺 Schwellwert für Peaks", 0.1, 1.0, 0.4)
+            peaks = ekg.find_peaks(threshold)
+            ekg.peaks = peaks
+
+            heart_rate = ekg.estimate_heart_rate(peaks)
+            st.metric("❤️ Geschätzte Herzfrequenz", f"{heart_rate} bpm")
+
+            # Plot
+            if hasattr(ekg, 'peaks'):
+                st.subheader("📈 EKG-Zeitreihe mit markierten Peaks")
+                fig = ekg.plot_time_series()
+                st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            st.warning("⚠️ Keine Person mit dieser ID gefunden.")
